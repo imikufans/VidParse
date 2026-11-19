@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VidParse · 多平台视频解析工具</title>
+<script src="/static/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#ffffff; --text:#1f2430; --muted:#6b7280;
+    --line:#e5e7eb; --primary:#4f46e5; --primary-d:#4338ca;
+    --ok:#059669; --warn:#d97706; --err:#dc2626;
+    --shadow:0 4px 20px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.6;padding:24px 16px 60px}
+  .wrap{max-width:920px;margin:0 auto}
+  header{text-align:center;margin-bottom:28px}
+  header h1{font-size:26px;font-weight:750;letter-spacing:.5px}
+  header h1 .dot{color:var(--primary)}
+  header p{color:var(--muted);font-size:14px;margin-top:4px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+  .card h2{font-size:17px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .card h2 .badge{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;
+    background:#eef2ff;color:var(--primary)}
+  /* 解析区 */
+  .parse-row{display:flex;gap:10px}
+  .parse-row input{flex:1;padding:13px 16px;border:1.5px solid var(--line);border-radius:10px;
+    font-size:14px;outline:none;transition:.2s}
+  .parse-row input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+  button{cursor:pointer;border:none;border-radius:10px;font-size:14px;font-weight:600;
+    padding:12px 22px;transition:.2s;font-family:inherit}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-primary:hover{background:var(--primary-d)}
+  .btn-primary:disabled{opacity:.55;cursor:not-allowed}
+  .btn-ghost{background:#f3f4f6;color:var(--text)}
+  .btn-ghost:hover{background:#e5e7eb}
+  .btn-sm{padding:7px 14px;font-size:13px}
+  .tip{font-size:12.5px;color:var(--muted);margin-top:10px}
+  /* 登录卡片 */
+  .login-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .login-box{border:1px solid var(--line);border-radius:12px;padding:18px;background:#fcfcfd}
+  .login-box .title{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .login-box .desc{font-size:12.5px;color:var(--muted);min-height:38px}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;
+    padding:3px 10px;border-radius:20px;margin:8px 0}
+  .status.on{background:#ecfdf5;color:var(--ok)}
+  .status.off{background:#f3f4f6;color:var(--muted)}
+  .status .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .login-box .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  /* 结果区 */
+  #result{display:none}
+  .meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
+  .meta-item{background:#f9fafb;border-radius:8px;padding:10px 12px;font-size:13px}
+  .meta-item .k{color:var(--muted);font-size:11.5px}
+  .meta-item .v{font-weight:600;word-break:break-all;margin-top:2px}
+  .cover{float:right;width:150px;border-radius:10px;margin-left:16px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;background:#f9fafb}
+  tr:hover td{background:#fafbff}
+  .fmt-tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:5px;background:#eef2ff;color:var(--primary);font-weight:600}
+  .op{display:flex;gap:6px}
+  .op a,.op button{font-size:12px;padding:4px 10px;border-radius:6px;text-decoration:none}
+  .link-btn{background:#eef2ff;color:var(--primary);border:none;cursor:pointer;font-weight:600}
+  .link-btn:hover{background:#e0e7ff}
+  /* 弹窗 */
+  .mask{display:none;position:fixed;inset:0;background:rgba(15,20,40,.5);z-index:50;
+    align-items:center;justify-content:center;padding:20px}
+  .mask.show{display:flex}
+  .modal{background:#fff;border-radius:18px;padding:28px;max-width:400px;width:100%;
+    text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25);position:relative}
+  .modal h3{font-size:18px;margin-bottom:6px}
+  .modal p{font-size:13px;color:var(--muted);margin-bottom:16px}
+  .qr-box{display:inline-block;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+  #qrcode img,#qrcode canvas{display:block}
+  .close{position:absolute;top:12px;right:16px;font-size:22px;color:var(--muted);
+    cursor:pointer;background:none;border:none;line-height:1}
+  .poll-msg{font-size:13px;margin-top:14px;min-height:20px;font-weight:600}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);
+    border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;
+    vertical-align:middle;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .alert{padding:12px 14px;border-radius:10px;font-size:13px;margin-top:12px;display:none}
+  .alert.err{background:#fef2f2;color:var(--err);display:block}
+  .alert.ok{background:#ecfdf5;color:var(--ok);display:block}
+  /* 手动 cookie 输入 */
+  .manual{display:none;margin-top:12px}
+  .manual textarea{width:100%;min-height:64px;padding:10px;border:1.5px solid var(--line);
+    border-radius:8px;font-size:12px;outline:none;resize:vertical;font-family:monospace}
+  .manual textarea:focus{border-color:var(--primary)}
+  /* 音视频合成面板 */
+  .merge-panel{background:linear-gradient(135deg,#f5f3ff,#eef2ff);border:1.5px solid #c7d2fe;
+    border-radius:12px;padding:16px;margin-top:14px}
+  .merge-panel h3{font-size:14px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+  .merge-panel .sub{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .merge-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .merge-grid label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+  .merge-grid select{width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:8px;
+    font-size:13px;outline:none;background:#fff;font-family:inherit}
+  .merge-grid select:focus{border-color:var(--primary)}
+  .merge-actions{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .progress-wrap{display:none;margin-top:12px}
+  .progress-bar{height:8px;background:#e5e7eb;border-radius:20px;overflow:hidden}
+  .progress-bar .fill{height:100%;width:0;background:linear-gradient(90deg,var(--primary),#7c3aed);
+    border-radius:20px;transition:width .3s}
+  .progress-txt{font-size:12px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between}
+  .merge-result{display:none;margin-top:12px;background:#ecfdf5;border:1px solid #a7f3d0;
+    border-radius:10px;padding:12px 14px}
+  .merge-result .ok-line{font-size:13px;font-weight:600;color:var(--ok);margin-bottom:8px}
+  .btn-sm2{padding:7px 14px;font-size:12px;border-radius:7px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:30px}
+  @media(max-width:640px){.login-grid{grid-template-columns:1fr}.parse-row{flex-direction:column}.merge-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>VidParse<span class="dot">.</span></h1>
+    <p>支持 B站 · 抖音 · YouTube 等平台 — 扫码登录解锁高清，一键获取视频直链</p>
+  </header>
+
+  <!-- 登录管理 -->
+  <div class="card">
+    <h2>🔐 登录状态 <span class="badge">扫码登录自动获取 Cookie</span></h2>
+    <div class="login-grid">
+      <!-- B站 -->
+      <div class="login-box">
+        <div class="title">📺 B站 Bilibili</div>
+        <div class="desc">扫码登录后自动获取 Cookie，可解析 1080P 及更高画质</div>
+        <div id="bili-status" class="status off"><span class="dot"></span>未登录</div>
+        <div class="actions">
+          <button class="btn-primary btn-sm" id="bili-login-btn" onclick="biliLogin()">扫码登录</button>
+          <button class="btn-ghost btn-sm" onclick="toggleManual('bili')">手动粘贴</button>
+          <button class="btn-ghost btn-sm" onclick="delCookie('bilibili')">清除</button>
+        </div>
+        <div class="manual" id="manual-bili">
+          <textarea id="bili-cookie-input" placeholder="粘贴 B站 Cookie（含 SESSDATA=... 或仅 SESSDATA 值）"></textarea>
+          <button class="btn-primary btn-sm" style="margin-top:8px" onclick="saveCookie('bilibili')">保存</button>
+        </div>
+      </div>
+      <!-- 抖音 -->
+      <div class="login-box">
+        <div class="title">🎵 抖音 Douyin</div>
+        <div class="desc">点击后自动打开浏览器，用抖音 App 扫码登录即可自动获取 Cookie</div>
+        <div id="dy-status" class="status off"><span class="dot"></span>未登录</div>
+        <div class="actions">
+          <button class="btn-primary btn-sm" id="dy-login-btn" onclick="dyLogin()">打开浏览器登录</button>
+          <button class="btn-ghost btn-sm" onclick="toggleManual('dy')">手动粘贴</button>
+          <button class="btn-ghost btn-sm" onclick="delCookie('douyin')">清除</button>
+        </div>
+        <div class="manual" id="manual-dy">
+          <textarea id="dy-cookie-input" placeholder="粘贴抖音 Cookie（浏览器 F12 → Network → 复制 Cookie 请求头）"></textarea>
+          <button class="btn-primary btn-sm" style="margin-top:8px" onclick="saveCookie('douyin')">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 解析 -->
+  <div class="card">
+    <h2>🔍 VidParse 解析</h2>
+    <div class="parse-row">
+      <input id="url-input" placeholder="粘贴视频链接，例如 https://www.bilibili.com/video/BV..." 
+             value="" onkeydown="if(event.key==='Enter')parse()">
+      <button class="btn-primary" id="parse-btn" onclick="parse()">开始解析</button>
+    </div>
+    <div class="tip">💡 支持完整链接、抖音分享口令里的链接、b23.tv 短链；Cookie 会在解析时自动使用。抖音请贴<b>单个视频</b>链接（形如 .../video/数字ID），搜索页/主页无法解析</div>
+    <div id="parse-alert" class="alert"></div>
+
+    <div id="result">
+      <h2 style="margin-top:24px">📹 视频信息</h2>
+      <img id="cover" class="cover" style="display:none">
+      <div class="meta-grid" id="meta"></div>
+      <div style="clear:both"></div>
+      <div id="player-box" style="display:none;margin-top:16px">
+        <div id="player-title" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
+        <video id="video-player" controls style="width:100%;max-height:460px;background:#000;border-radius:10px"></video>
+      </div>
+      <h2 style="margin-top:16px">📋 可用格式 <span class="badge" id="fmt-count"></span></h2>
+      <div id="dash-tip" style="display:none;font-size:12.5px;color:var(--warn);background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px">
+        💡 标有 <b>✦ 有声</b> 的是音视频合并流，可直接播放；其他高清流为<b>音视频分离</b>（单独播放无声音）。请用下方 <b>🎬 音视频合成</b> 面板一键合并为带声音的高清 MP4。
+      </div>
+      <table>
+        <thead><tr><th>清晰度</th><th>类型</th><th>格式</th><th>分辨率</th><th>操作</th></tr></thead>
+        <tbody id="fmt-body"></tbody>
+      </table>
+
+      <!-- 音视频合成面板 -->
+      <div class="merge-panel" id="merge-panel" style="display:none">
+        <h3>🎬 音视频合成 <span class="badge">高画质 · 带声音</span></h3>
+        <div class="sub" id="merge-sub">选择视频流与音频流，自动合并为一个带声音的高清 MP4（无损合成，画质零损失）</div>
+        <div class="merge-grid">
+          <div>
+            <label>视频流（画面）</label>
+            <select id="merge-video"></select>
+          </div>
+          <div>
+            <label>音频流（声音）</label>
+            <select id="merge-audio"></select>
+          </div>
+        </div>
+        <div class="merge-actions">
+          <button class="btn-primary btn-sm" id="merge-btn" onclick="startMerge()">开始合成</button>
+          <button class="btn-ghost btn-sm" onclick="autoPickBest()">自动选最佳画质</button>
+          <span id="ffmpeg-hint" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+        <div class="progress-wrap" id="merge-progress">
+          <div class="progress-bar"><div class="fill" id="merge-fill"></div></div>
+          <div class="progress-txt"><span id="merge-stage">准备中…</span><span id="merge-percent">0%</span></div>
+        </div>
+        <div class="merge-result" id="merge-result">
+          <div class="ok-line">✅ 合成完成！</div>
+          <div class="op">
+            <button class="btn-sm2" style="background:var(--primary);color:#fff" onclick="playMerged()">▶ 播放</button>
+            <a class="btn-sm2" id="merge-download" style="background:#059669;color:#fff;text-decoration:none" download>⬇ 下载 MP4</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>VidParse · 仅供个人学习与合法备份使用 · 请遵守平台条款与版权法规</footer>
+</div>
+
+<!-- 扫码弹窗 -->
+<div class="mask" id="qr-mask">
+  <div class="modal">
+    <button class="close" onclick="closeQr()">&times;</button>
+    <h3 id="qr-title">扫码登录</h3>
+    <p id="qr-desc">请使用手机 App 扫描二维码</p>
+    <div class="qr-box"><div id="qrcode"></div></div>
+    <div class="poll-msg" id="poll-msg"><span class="spinner"></span>等待扫码…</div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let pollTimer = null;
+
+function showAlert(msg, type='err'){
+  const a=$('parse-alert'); a.textContent=msg; a.className='alert '+type;
+  a.style.display='block';
+}
+function fmtTime(sec){
+  if(!sec) return '-';
+  const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;
+  return h?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;
+}
+
+// ---------- Cookie 状态 ----------
+async function refreshStatus(){
+  try{
+    const r=await fetch('/api/cookie/status').then(x=>x.json());
+    const d=r.data||{};
+    for(const [p,el] of [['bilibili','bili-status'],['douyin','dy-status']]){
+      const s=d[p]||{}; const e=$(el);
+      if(s.logged_in){
+        e.className='status on';
+        e.innerHTML=`<span class="dot"></span>已登录${s.username?' · '+esc(s.username):''}`;
+      }else{
+        e.className='status off'; e.innerHTML='<span class="dot"></span>未登录';
+      }
+    }
+  }catch(e){}
+}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+
+function toggleManual(p){ $('manual-'+p).style.display = $('manual-'+p).style.display==='block'?'none':'block'; }
+async function saveCookie(platform){
+  const v=platform==='bilibili'?$('bili-cookie-input').value:$('dy-cookie-input').value;
+  const r=await fetch('/api/cookie/set',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({platform,cookie:v})}).then(x=>x.json());
+  alert(r.success?'Cookie 已保存':'保存失败: '+r.error);
+  if(r.success) refreshStatus();
+}
+async function delCookie(platform){
+  if(!confirm('确定清除该平台的登录 Cookie 吗？')) return;
+  await fetch('/api/cookie/delete?platform='+platform); refreshStatus();
+}
+
+// ---------- B站扫码 ----------
+async function biliLogin(){
+  const btn=$('bili-login-btn'); btn.disabled=true;
+  try{
+    const r=await fetch('/api/login/bili/qrcode').then(x=>x.json());
+    if(!r.success) throw new Error(r.error);
+    $('qr-title').textContent='B站扫码登录';
+    $('qr-desc').textContent='用 B站 App 扫码，并在手机上确认登录';
+    $('qr-mask').classList.add('show');
+    $('qrcode').innerHTML='';
+    new QRCode($('qrcode'),{text:r.data.url,width:200,height:200,
+      colorDark:'#1f2430',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+    pollBili(r.data.qrcode_key);
+  }catch(e){ alert('获取二维码失败: '+e.message); }
+  btn.disabled=false;
+}
+async function pollBili(key){
+  clearInterval(pollTimer); let n=0;
+  pollTimer=setInterval(async()=>{
+    try{
+      const r=await fetch('/api/login/bili/poll?key='+encodeURIComponent(key)).then(x=>x.json());
+      const d=r.data||{};
+      $('poll-msg').innerHTML='<span class="spinner"></span>'+esc(d.message||'等待扫码…');
+      if(d.status==='success'){ finishLogin('登录成功！已自动保存 Cookie'); }
+      else if(d.status==='expired'){ $('poll-msg').innerHTML='<span style="color:var(--err)">二维码已过期，请关闭后重试</span>'; clearInterval(pollTimer); }
+      else if(d.status==='error' && ++n>2){ $('poll-msg').textContent=d.message; }
+    }catch(e){}
+  },2000);
+}
+
+// ---------- 抖音浏览器登录 ----------
+async function dyLogin(){
+  const btn=$('dy-login-btn'); btn.disabled=true;
+  try{
+    const r=await fetch('/api/login/douyin/start').then(x=>x.json());
+    if(!r.success) throw new Error(r.error);
+    $('qr-title').textContent='抖音浏览器登录';
+    $('qr-desc').textContent='请在弹出的浏览器右上角点『登录』，再用抖音 App 扫码（窗口若在后台请从任务栏切回）';
+    $('qrcode').innerHTML='<div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;background:#f3f4f6;border-radius:12px;font-size:48px">🎵</div>';
+    $('qr-mask').classList.add('show');
+    pollDy();
+  }catch(e){ alert('启动浏览器失败: '+e.message); }
+  btn.disabled=false;
+}
+async function pollDy(){
+  clearInterval(pollTimer); let n=0;
+  pollTimer=setInterval(async()=>{
+    try{
+      const r=await fetch('/api/login/douyin/poll').then(x=>x.json());
+      const d=r.data||{};
+      $('poll-msg').innerHTML='<span class="spinner"></span>'+esc(d.message||'等待登录…');
+      if(d.status==='success'){ finishLogin('登录成功！已自动读取并保存 Cookie'); }
+      else if(d.status==='error' && ++n>3){ $('poll-msg').textContent=d.message; }
+    }catch(e){}
+  },2500);
+}
+function finishLogin(msg){
+  clearInterval(pollTimer);
+  $('poll-msg').innerHTML='<span style="color:var(--ok);font-weight:700">✓ '+esc(msg)+'</span>';
+  refreshStatus();
+  setTimeout(closeQr,1500);
+}
+function closeQr(){
+  clearInterval(pollTimer);
+  $('qr-mask').classList.remove('show');
+  fetch('/api/login/douyin/stop',{method:'POST'}).catch(()=>{});
+}
+
+// ---------- 解析 ----------
+async function parse(){
+  const url=$('url-input').value.trim();
+  if(!url){ showAlert('请输入视频链接'); return; }
+  const btn=$('parse-btn'); btn.disabled=true; btn.textContent='解析中…';
+  $('parse-alert').style.display='none';
+  try{
+    const r=await fetch('/api/parse?url='+encodeURIComponent(url)).then(x=>x.json());
+    if(!r.success){ showAlert('解析失败: '+(r.error||'未知错误')); $('result').style.display='none'; return; }
+    render(r.data);
+  }catch(e){ showAlert('请求失败: '+e.message); }
+  btn.disabled=false; btn.textContent='开始解析';
+}
+// 生成走代理的媒体地址(服务端注入 Referer, 避免 CDN 防盗链 403)
+function proxyUrl(f){
+  let u='/api/proxy?url='+encodeURIComponent(f.url)+'&platform='+encodeURIComponent(window._platform||'bilibili');
+  // generic 平台(yt-dlp 兜底)传入来源站 Referer, 避免防盗链 403
+  if((window._platform||'')==='generic' && window._sourceUrl){
+    try{ const p=new URL(window._sourceUrl); u+='&referer='+encodeURIComponent(p.origin+'/'); }catch(e){}
+  }
+  return u;
+}
+function render(d){
+  $('result').style.display='block';
+  window._platform=d.platform;
+  window._title=d.title||'video';
+  window._sourceUrl=d.source_url||'';
+  const cover=$('cover');
+  // 封面也走代理(带 Referer), 避免部分 CDN 防盗链
+  let coverUrl='';
+  if(d.cover){
+    coverUrl='/api/proxy?url='+encodeURIComponent(d.cover)+'&platform='+encodeURIComponent(d.platform||'bilibili');
+    if((d.platform||'')==='generic' && d.source_url){
+      try{ coverUrl+='&referer='+encodeURIComponent(new URL(d.source_url).origin+'/'); }catch(e){}
+    }
+  }
+  window._cover=coverUrl;
+  if(d.cover){ cover.src=window._cover; cover.style.display='block'; } else cover.style.display='none';
+  const items=[
+    ['平台',d.platform],['标题',d.title],['作者',d.author],
+    ['时长',fmtTime(d.duration)],['播放量',d.view_count?d.view_count.toLocaleString():'-'],
+    ['视频 ID',d.video_id],['来源',d.extra&&d.extra.engine||'专用接口']
+  ];
+  $('meta').innerHTML=items.map(([k,v])=>`<div class="meta-item"><div class="k">${k}</div><div class="v">${esc(String(v||'-'))}</div></div>`).join('');
+  $('fmt-count').textContent=(d.formats||[]).length+' 个';
+  const body=$('fmt-body');
+  const hasDash=(d.formats||[]).some(f=>f.protocol==='dash');
+  $('dash-tip').style.display=hasDash?'block':'none';
+  body.innerHTML=(d.formats||[]).map((f,i)=>{
+    const type=f.media_type==='audio'?'音频':f.media_type==='both'?'音视频':'视频';
+    const res=f.width&&f.height?`${f.width}×${f.height}`:'-';
+    const purl=proxyUrl(f);
+    const merged=f.note&&f.note.indexOf('合并')>=0;
+    const label=(f.quality||f.format_id||'默认')+(merged?' ✦':(f.protocol==='dash'?' (DASH)':''));
+    return `<tr>
+      <td><span class="fmt-tag">${esc(label)}${merged?' <span style="color:var(--ok)">有声</span>':''}</span></td>
+      <td>${type}</td><td>${esc(f.ext||'-')}</td><td>${res}</td>
+      <td><div class="op">
+        <button class="link-btn" onclick="playFmt(${i})">▶ 播放</button>
+        <a class="link-btn" href="${esc(purl)}" download="${esc((d.title||'video').replace(/[\\/:*?\"<>|]/g,'_'))}">下载</a>
+        <button class="link-btn" onclick="copyLink(${i})">复制链接</button>
+      </div></td></tr>`;
+  }).join('');
+  window._formats=d.formats||[];
+  // 默认折叠播放器
+  $('player-box').style.display='none';
+  // 音视频合成面板: 只要存在独立的视频流和音频流就显示(不限 protocol=dash,
+  // YouTube/yt-dlp 的分离流 protocol 是 http, 之前的判断会漏掉)
+  const vids=(d.formats||[]).filter(f=>f.media_type==='video');
+  const auds=(d.formats||[]).filter(f=>f.media_type==='audio');
+  const needMerge=vids.length>0 && auds.length>0;
+  window._needMerge=needMerge;
+  $('merge-panel').style.display=needMerge?'block':'none';
+  window._mergeTaskId='';
+  $('merge-progress').style.display='none';
+  $('merge-result').style.display='none';
+  if(needMerge){
+    fillMergeSelects(vids,auds);
+    checkFFmpeg();
+  }
+}
+
+// 填充合成面板的下拉框
+function fillMergeSelects(vids,auds){
+  // 视频流排序: 分辨率高 -> H.264 优先(兼容性最好, mp4 无损封装) -> 码率高
+  const codecScore=f=>{const c=(f.codec||'').toLowerCase(); return c.indexOf('avc1')>=0||c.indexOf('h264')>=0?2:(c.indexOf('hev')>=0||c.indexOf('h265')>=0?0:1);};
+  const vs=[...vids].sort((a,b)=>(b.height||0)-(a.height||0)||codecScore(b)-codecScore(a)||(b.bitrate||0)-(a.bitrate||0));
+  $('merge-video').innerHTML=vs.map((f,i)=>{
+    const label=(f.quality||f.format_id||'视频')+(f.height?' '+f.height+'P':'');
+    const c=(f.codec||'').toLowerCase();
+    const ctag=c.indexOf('avc1')>=0||c.indexOf('h264')>=0?'H.264':(c.indexOf('hev')>=0?'HEVC':'');
+    return `<option value="${i}">${esc(label)}${ctag?' ['+ctag+']':''}${f.bitrate?' · '+(f.bitrate/1000).toFixed(0)+'kb/s':''}</option>`;
+  }).join('');
+  window._mergeVideos=vs;
+  // 音频流按码率从高到低
+  const as=[...auds].sort((a,b)=>(b.bitrate||0)-(a.bitrate||0));
+  $('merge-audio').innerHTML=as.map(f=>{
+    const label=(f.quality||f.format_id||'音频')+(f.bitrate?' · '+(f.bitrate/1000).toFixed(0)+'kb/s':'');
+    return `<option value="${as.indexOf(f)}">${esc(label)}</option>`;
+  }).join('');
+  window._mergeAudios=as;
+}
+// 自动选最佳(最高分辨率视频 + 最高码率音频)
+function autoPickBest(){
+  if($('merge-video').options.length) $('merge-video').selectedIndex=0;
+  if($('merge-audio').options.length) $('merge-audio').selectedIndex=0;
+  $('merge-btn').focus();
+}
+async function checkFFmpeg(){
+  try{
+    const r=await fetch('/api/ffmpeg/status').then(x=>x.json());
+    const d=r.data||{};
+    $('ffmpeg-hint').textContent=d.available?'✅ ffmpeg 已就绪，可无损合成':'⚠️ '+d.message;
+    $('ffmpeg-hint').style.color=d.available?'var(--ok)':'var(--err)';
+    $('merge-btn').disabled=!d.available;
+  }catch(e){ $('ffmpeg-hint').textContent='无法检测 ffmpeg'; }
+}
+async function startMerge(){
+  const vf=window._mergeVideos[$('merge-video').value];
+  const af=window._mergeAudios[$('merge-audio').value];
+  if(!vf||!af){ alert('请选择视频流和音频流'); return; }
+  const btn=$('merge-btn'); btn.disabled=true; btn.textContent='提交中…';
+  $('merge-result').style.display='none';
+  $('merge-progress').style.display='block';
+  $('merge-fill').style.width='0%'; $('merge-percent').textContent='0%';
+  $('merge-stage').textContent='正在提交任务…';
+  try{
+    let referer='';
+    if((window._platform||'')==='generic' && window._sourceUrl){
+      try{ referer=new URL(window._sourceUrl).origin+'/'; }catch(e){}
+    }
+    const payload={
+      video_url:vf.url, audio_url:af.url,
+      platform:window._platform||'bilibili',
+      title:(window._title||'video'),
+      quality:(vf.quality||vf.format_id||'高画质').replace(/\s+/g,''),
+      referer:referer
+    };
+    const r=await fetch('/api/merge/start',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)}).then(x=>x.json());
+    if(!r.success) throw new Error(r.error||'提交失败');
+    window._mergeTaskId=r.data.id;
+    pollMerge(r.data.id);
+  }catch(e){
+    $('merge-stage').textContent='失败: '+e.message;
+    btn.disabled=false; btn.textContent='开始合成';
+  }
+}
+function pollMerge(id){
+  const timer=setInterval(async()=>{
+    try{
+      const r=await fetch('/api/merge/status?id='+encodeURIComponent(id)).then(x=>x.json());
+      if(!r.success){ clearInterval(timer); return; }
+      const d=r.data;
+      $('merge-fill').style.width=(d.progress||0)+'%';
+      $('merge-percent').textContent=(d.progress||0)+'%';
+      $('merge-stage').textContent=(d.stage||'处理中')+(d.message?' · '+d.message:'');
+      if(d.status==='done'){
+        clearInterval(timer);
+        $('merge-progress').style.display='none';
+        $('merge-result').style.display='block';
+        $('merge-download').href='/api/merge/file?id='+encodeURIComponent(id);
+        $('merge-download').setAttribute('download',(d.output_name||'merged.mp4'));
+        window._mergedId=id;
+        const btn=$('merge-btn'); btn.disabled=false; btn.textContent='重新合成';
+      }else if(d.status==='error'||d.status==='cancelled'){
+        clearInterval(timer);
+        $('merge-stage').innerHTML='<span style="color:var(--err)">'+esc(d.message||'合成失败')+'</span>';
+        const btn=$('merge-btn'); btn.disabled=false; btn.textContent='重试合成';
+      }
+    }catch(e){}
+  },800);
+}
+function playMerged(){
+  if(!window._mergedId) return;
+  const box=$('player-box'), video=$('video-player');
+  box.style.display='block';
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  video.src='/api/merge/file?id='+encodeURIComponent(window._mergedId);
+  video.poster=window._cover||'';
+  video.load(); video.play().catch(()=>{});
+  $('player-title').textContent='正在播放：合成后的高清视频（带声音）';
+  $('player-title').style.color='var(--ok)';
+}
+
+// 在线播放(用原生 video 播放器, 走代理带 Referer)
+function playFmt(i){
+  const f=window._formats[i];
+  const box=$('player-box');
+  const video=$('video-player');
+  box.style.display='block';
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  // DASH 分离流(media_type=video 且无声音)直接播放会静音, 给出提示
+  const dashSilent=f.protocol==='dash' && f.media_type==='video';
+  video.src=proxyUrl(f);
+  video.poster=window._cover||'';
+  video.load();
+  video.play().catch(()=>{});
+  let title='正在播放：'+(f.quality||f.format_id||'默认')+(f.media_type==='audio'?'（纯音频）':'');
+  if(dashSilent) title+=' ⚠️ 此 DASH 视频流无声音，请选上方「✦ 有声」合并流';
+  $('player-title').textContent=title;
+  $('player-title').style.color=dashSilent?'var(--warn)':'var(--muted)';
+}
+
+function copyLink(i){
+  const f=window._formats[i];
+  const direct=f.url;
+  const proxied=location.origin+proxyUrl(f);
+  const msg='请选择要复制的链接类型：\n\n【确定】= 代理链接（可直接在浏览器打开/下载，推荐）\n【取消】= 原始直链（需自行带 Referer，否则可能 403）';
+  if(confirm(msg)){
+    navigator.clipboard.writeText(proxied).then(()=>alert('已复制代理链接（可直接在浏览器打开）'))
+      .catch(()=>prompt('请手动复制：',proxied));
+  }else{
+    navigator.clipboard.writeText(direct).then(()=>alert('已复制原始直链（直接打开可能需要 Referer）'))
+      .catch(()=>prompt('请手动复制：',direct));
+  }
+}
+
+refreshStatus();
+</script>
+</body>
+</html>

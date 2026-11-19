@@ -1,0 +1,76 @@
+{
+  "name": "vidparse-desktop",
+  "version": "1.1.0",
+  "description": "VidParse - 多平台视频解析工具桌面版",
+  "main": "electron/main.js",
+  "author": "imikufans",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "pack": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "31.7.7",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.vidparse.desktop",
+    "productName": "VidParse",
+    "asar": false,
+    "directories": {
+      "output": "dist",
+      "buildResources": "electron/assets"
+    },
+    "files": [
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/assets/**/*",
+      "webui.py",
+      "cli.py",
+      "server.py",
+      "requirements.txt",
+      "README.md",
+      "vidparse/**/*",
+      "web/**/*",
+      "bin/**/*",
+      "一键启动.bat",
+      "安装ffmpeg.bat",
+      "!**/__pycache__/**",
+      "!**/*.pyc"
+    ],
+    "extraResources": [
+      {
+        "from": "runtime/python",
+        "to": "python",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "electron/assets/icon.ico",
+      "artifactName": "VidParse-安装包-${version}.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VidParse",
+      "installerLanguages": [
+        "zh_CN"
+      ],
+      "language": "2052"
+    }
+  }
+}

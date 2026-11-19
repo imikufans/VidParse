@@ -1,0 +1,8 @@
+# 核心解析器零依赖(纯 Python 标准库即可运行), 以下是可选增强:
+yt-dlp>=2025.1.1        # YouTube 兜底 + 上千平台通用解析(强烈建议安装)
+# Flask>=3.0            # 如需用 Flask 版 Web 服务(可选, 内置 server.py 无需)
+
+# 视频合并(DASH 音视频分离流 -> MP4)需要 ffmpeg, 通过系统包管理器安装:
+#   Windows: winget install Gyan.FFmpeg  或  choco install ffmpeg
+#   macOS:   brew install ffmpeg
+#   Linux:   sudo apt install ffmpeg
