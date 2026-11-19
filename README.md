@@ -71,7 +71,7 @@
 
 ### Windows
 
-1. 到 [Releases](../../releases) 下载 `VidParse-安装包-*.exe`（安装版）或 `VidParsePortable.zip`（便携版）；
+1. 到 [Releases](../../releases) 下载 `VidParse.exe`（安装版）或 `VidParsePortable.zip`（便携版）；
 2. **安装版**：双击安装，按提示完成，桌面会出现「VidParse」图标，双击打开；
 3. **便携版**：解压 zip 到任意文件夹，双击里面的 `VidParse.exe`；
 4. 应用会自动启动本地服务并打开界面，之后按 [三步通用流程](#-新手从这里开始最简单的三种方式) 使用即可。
@@ -372,7 +372,7 @@ python cli.py "https://www.bilibili.com/video/BV1GJ411x7h7"
 
 ```bash
 npm install
-npm run dist       # 生成 dist/VidParse-安装包-*.exe
+npm run dist       # 生成 dist/VidParse.exe
 # 便携包：将 dist/win-unpacked 目录打包为 zip 即可
 ```
 
