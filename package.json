@@ -58,7 +58,7 @@
         }
       ],
       "icon": "electron/assets/icon.ico",
-      "artifactName": "VidParse-安装包-${version}.${ext}",
+      "artifactName": "VidParse.${ext}",
       "signAndEditExecutable": false
     },
     "nsis": {
